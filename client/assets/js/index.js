@@ -39,3 +39,10 @@ for (const item of dropDowns) {
 }
 
 document.querySelector('.year-container').innerText = new Date().getFullYear();
+
+window.addEventListener('load', () => {
+    const preloader = document.querySelector('.preloader');
+    document.body.classList.remove('no-scroll');
+    preloader.classList.add('preloader-loaded');
+    setTimeout(() => preloader.remove(), 2000);
+})

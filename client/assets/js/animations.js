@@ -15,7 +15,7 @@ window.addEventListener('load', () => {
                 if(e.isIntersecting && heroHeading) {
                     const heroHeadingTypewriter = new Typewriter(heroHeading, { delay: 20 });
                     heroHeading.classList.remove('opacity-0');
-                    heroHeadingTypewriter.typeString('Reliable Detailing Services You Can Trust').start()
+                    heroHeadingTypewriter.typeString('Reliable Detailing Services You Can Trust.').start()
                     .callFunction(() => {
                         Motion.animate('.initial-hero-elem-state', {
                             y: 0, opacity: 1

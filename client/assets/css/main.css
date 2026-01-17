@@ -5,8 +5,8 @@
     font-display: swap;
     font-weight: 400;
     src: url('../fonts/norwester-latin-400-normal.woff2') format('woff2'),
-    url('../fonts/norwester-latin-400-normal.woff') format('woff');
-  }
+        url('../fonts/norwester-latin-400-normal.woff') format('woff');
+}
 
 :root {
     /* Add these styles to your global stylesheet, which is used across all site pages. You only need to do this once. All elements in the library derive their variables and base styles from this central sheet, simplifying site-wide edits. For instance, if you want to modify how your h2's appear across the site, you just update it once in the global styles, and the changes apply everywhere. */
@@ -26,6 +26,74 @@
     --sectionPadding: clamp(3.75rem, 7.82vw, 6.25rem) 1rem;
 }
 
+
+.preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--dark);
+    z-index: 10001;
+    opacity: 1;
+    transition: 1s;
+}
+
+.preloader-loaded {
+    opacity: 0 !important;
+    transition: 1s !important;
+}
+
+.loading-text {
+    color: var(--primary);
+}
+
+.preloader div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    row-gap: 1rem;
+    height: inherit;
+    width: inherit;
+    overflow-x: hidden;
+}
+
+.no-scroll {
+    overflow-y: hidden;
+}
+
+.dot-bounce-1,
+.dot-bounce-2,
+.dot-bounce-3 {
+    display: inline-block;
+    animation-name: dotbounce;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+}
+
+.dot-bounce-2 {
+    animation-delay: 0.3s;
+}
+
+.dot-bounce-3 {
+    animation-delay: 0.5s;
+}
+
+@keyframes dotbounce {
+    0% {
+        translate: 0px 0px;
+    }
+
+    50% {
+        translate: 0px -2px;
+    }
+
+    100% {
+        translate: 0px 0px;
+    }
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -33,10 +101,13 @@ body {
     background-color: var(--dark);
 }
 
-*, *:before, *:after {
+*,
+*:before,
+*:after {
     /* prevents padding from affecting height and width */
     box-sizing: border-box;
 }
+
 .cs-topper {
     font-size: var(--topperFontSize);
     line-height: 1.2em;
@@ -70,4 +141,3 @@ body {
     margin: 0;
     color: var(--bodyTextColor);
 }
-                            
