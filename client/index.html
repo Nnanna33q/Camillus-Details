@@ -148,34 +148,45 @@
                 <span class="cs-topper">Contact</span>
                 <h2 class="cs-title">Reach Out To Us</h2>
                 <!--Form-->
-                <form class="cs-form" id="cs-form-323-2320" name="Contact Form" method="post">
+                <form class="cs-form" id="cs-form-323-2320" name="Contact Form">
+                    <div class="error-msg"></div>
                     <label class="cs-label">
                         Name
-                        <input class="cs-input" required type="text" name="name" placeholder="Name">
+                        <input id="name" class="cs-input" type="text" name="name" placeholder="Name">
                     </label>
                     <label class="cs-label cs-email">
                         Email
-                        <input class="cs-input" required type="email" name="email" placeholder="Email">
+                        <input id="email" class="cs-input" type="email" name="email" placeholder="Email">
                     </label>
                     <label class="cs-label cs-phone">
                         Phone
-                        <input class="cs-input" required type="tel" name="phone" placeholder="Phone">
+                        <input id="phone" class="cs-input" type="tel" name="phone" placeholder="Phone">
                     </label>
                     <label class="cs-label cs-services">
                         Services
-                        <select class="cs-input" name="Services">
+                        <select id="service" class="cs-input" name="Services">
                             <option value="" disabled selected>Select a Service</option>
-                            <option value="New Construction">Interior Detail</option>
-                            <option value="Remodels">Exterior Detail</option>
-                            <option value="Cabinets">Full Detail</option>
+                            <option value="Interior Detail">Interior Detail</option>
+                            <option value="Exterior Detail">Exterior Detail</option>
+                            <option value="Full Detail">Full Detail</option>
                         </select>
                     </label>
                     <label class="cs-label">
                         Message
-                        <textarea class="cs-input cs-textarea" required name="Message"
+                        <textarea id="message" class="cs-input cs-textarea" name="Message"
                             placeholder="Write message..."></textarea>
                     </label>
-                    <button class="cs-button-solid cs-submit" type="submit">Send Message</button>
+                    <label class="cs-label cs-hp-field" aria-hidden="true">
+                        Company
+                        <input id="company" class="cs-input" type="text" name="company" placeholder="Company" tabindex="-1" autocomplete="off">
+                    </label>
+                    <button class="cs-button-solid cs-submit" type="submit">
+                        <div class="hidden">
+                            <span>Sending Message</span>
+                            <span><span class="dot-bounce-1">.</span><span class="dot-bounce-2">.</span><span class="dot-bounce-3">.</span></span>
+                        </div>
+                        <span>Send Message</span>
+                    </button>
                 </form>
             </div>
             <div class="cs-map">
@@ -505,6 +516,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/TypewriterJS/2.21.0/core.min.js"></script>
     <script defer src="assets/js/index.js"></script>
     <script defer src="assets/js/animations.js"></script>
+    <script defer src="assets/js/contact.js"></script>
 </body>
 
 </html>

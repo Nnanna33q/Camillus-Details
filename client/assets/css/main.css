@@ -17,6 +17,8 @@
     --headerColor: #E5E5E5;
     --bodyTextColor: #B3B3B3;
     --bodyTextColorWhite: #fafbfc;
+    --success: #16A34A;
+    --error: #DC2626;
     /* 13px - 16px */
     --topperFontSize: clamp(0.8125rem, 1.6vw, 1rem);
     /* 31px - 49px */
@@ -92,6 +94,35 @@
     100% {
         translate: 0px 0px;
     }
+}
+
+#contact-2320 .cs-input {
+    color: var(--dark) !important;
+}
+
+.hidden {
+    display: none;
+}
+
+.cs-hp-field {
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    left: -1000px
+}
+
+.error-msg {
+    font-family: sans-serif;
+    max-height: 20px;
+}
+
+.success-color {
+    color: var(--success);
+}
+
+.error-color {
+    color: var(--error);
 }
 
 body {
