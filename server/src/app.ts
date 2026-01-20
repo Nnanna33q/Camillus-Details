@@ -9,6 +9,8 @@ const whitelistedOrigins = process.env.NODE_ENVIRONMENT === 'production' ? ['htt
 
 const app = express()
 
+app.enable('trust-proxy');
+
 app.use(cors({
     origin: whitelistedOrigins
 }))

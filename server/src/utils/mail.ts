@@ -1,10 +1,10 @@
-import nodemailer from 'nodemailer';
 import type { Request, Response } from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
+import nodemailer from 'nodemailer';
 
-const host = 'smtp.mailersend.net';
-const port = 2525
+const host = 'smtp.resend.com';
+const port = 465
 
 export default async function sendMail(req: Request, res: Response) {
     try {
@@ -12,20 +12,20 @@ export default async function sendMail(req: Request, res: Response) {
         const transporter = nodemailer.createTransport({
             host,
             port,
-            secure: false,
+            secure: true,
             auth: {
-                user: process.env.MAILERSEND_USERNAME,
-                pass: process.env.MAILERSEND_PASSWORD
+                user: process.env.USERNAME,
+                pass: process.env.PASSWORD
             }
         })
         await transporter.sendMail({
-            from: `Camillus Details <${process.env.MAILERSEND_USERNAME}>`,
+            from: `Camillus Details <${process.env.SENDER_EMAIL}>`,
             to: process.env.OWNER_EMAIL_ADDRESS,
             subject: 'New Contact Form Submission',
             text: `Someone has reached out through your contact form\n\n\nName: ${name}\n\nPhone: ${phone}\n\nEmail: ${email}\n\nService: ${service}\n\nMessage: ${message}`
         })
         res.status(201).json({ success: true });
-    } catch(error) {
+    } catch (error) {
         console.error(error);
         res.status(500).json({
             success: false,
