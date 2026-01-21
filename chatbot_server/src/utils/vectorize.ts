@@ -6,7 +6,7 @@ export default async function getVector(text: string): Promise<number[]> {
         model: 'openai/text-embedding-3-small'
     }, {
         headers: {
-            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY2}`,
             "Content-Type": "application/json"
         }
     })

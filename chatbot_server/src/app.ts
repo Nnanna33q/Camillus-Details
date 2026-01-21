@@ -2,29 +2,35 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express from 'express';
 import connectToDB from './utils/db_connect.js';
+import { handleGeneralQuestion, handleBookingRequest } from './utils/llm_interactions.js';
 import insertKbVectors from './utils/vectorize_kb.js';
 import { rateLimit } from 'express-rate-limit';
-import axios from 'axios';
+import { getIntent } from './utils/llm_interactions.js';
+import session from 'express-session';
 import getVector from './utils/vectorize.js';
+import similarity from 'compute-cosine-similarity';
 import Kb from './schemas/knowledgebase.js';
 import Conversation from './schemas/conversation.js';
-import similarity from 'compute-cosine-similarity';
-import session from 'express-session';
 import { createConversation, updateConversation } from './utils/conversation.js';
-import { formatConversation, getSummary } from './utils/format_conversation.js';
+import type { TState, TBookingInfo, TBookingStep } from './utils/types.js';
+import MongoStore from 'connect-mongo';
 
 declare module 'express-session' {
     interface SessionData {
-        initialized: true,
-        interactionCount: number
+        state: TState,
+        bookingStep: TBookingStep
+        bookingInfo: TBookingInfo
     }
 }
 
-if(!process.env.SESSION_SECRET) throw new Error('No session secret detected');
+if (!process.env.SESSION_SECRET || !process.env.MONGODB_CONNECTIONSTRING) {
+    console.error('No environment variables detected');
+    process.exit(1);
+} 
 
 const limiter = rateLimit({
     windowMs: 60000,
-    limit: 20
+    limit: 10
 })
 
 const PORT = process.env.PORT ? process.env.PORT : 3000;
@@ -32,62 +38,66 @@ const app = express();
 app.use(session({
     resave: false,
     saveUninitialized: false,
-    secret: process.env.SESSION_SECRET
+    secret: process.env.SESSION_SECRET,
+    cookie: {
+        httpOnly: true,
+        maxAge: 60000 * 60 * 24
+    },
+    store: MongoStore.create({ mongoUrl: process.env.MONGODB_CONNECTIONSTRING })
 }))
 connectToDB().then(() => insertKbVectors());
 app.use(express.json());
 
-class ChatError extends Error {};
+class ChatError extends Error { };
 
 app.post('/', limiter, async (req, res) => {
     try {
-        req.session.initialized = true;
-        console.log(req.session);
         const { prompt } = req.body;
-        if(!prompt) throw new ChatError('Please add a prompt');
+        if (!prompt) throw new ChatError('Please add a prompt');
+        if(prompt.length > 500) throw new ChatError('Message too long (over 500 characters). Please shorten it and try again');
 
-        const [kbs, conversation] = await Promise.all([Kb.find(), Conversation.findOne({ sessionId: req.session.id })]);
+        const [kbs, conversation, intent, vectorPrompt] = await Promise.all([Kb.find(), Conversation.findOne({ sessionId: req.session.id }), getIntent(prompt), getVector(prompt)]);
 
-        const scoredKnowledgeChunks = await Promise.all(kbs.map(async k => {
-            return { score: similarity(await getVector(prompt), k.vector), text: k.text }
+        const scoredKnowledgeChunks = await Promise.all(kbs.map(k => {
+            return { score: similarity(vectorPrompt, k.vector), text: k.text }
         }))
         const sortedKC = scoredKnowledgeChunks.sort((a, b) => {
-            if(typeof a.score === 'number' && typeof b.score === 'number') {
+            if (typeof a.score === 'number' && typeof b.score === 'number') {
                 return b.score - a.score;
             }
             throw new Error('Invalid score type');
         })
         let referenceData = '';
         sortedKC.slice(0, 3).forEach(s => referenceData += s.text);
-        
-        const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-            model: 'nvidia/nemotron-nano-9b-v2:free',
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are a customer support assistant for Wash & Wax. Answer questions politely, clearly, professionally and briefly. Do not invent services, prices, or availability. If unsure about a user’s request, tell them you don’t have that information and suggest contacting the business. Maintain a friendly and helpful tone, and avoid mentioning internal systems, APIs, or AI models. Do not talk to the user in third person'
-                },
-                {
-                    role: 'user',
-                    content: `Answer the following user question using the provided knowledge base and summary if any.\nQuestion: "${prompt}".\n 
-                    Knowledge base: "${referenceData}".\n ${conversation ? formatConversation(conversation) : ''} \n
-                    ${conversation ? getSummary(conversation) : ''}`
-                }
-            ]
-        }, {
-            headers: {
-                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                "Content-Type": "application/json"
-            }
-        })
-        conversation ? updateConversation(prompt, aiResponse.data.choices[0].message.content, conversation, req.session.id) : createConversation(prompt, aiResponse.data.choices[0].message.content, req.session.id);
-        res.status(200).json({ success: true, msg: aiResponse.data.choices[0].message.content });
-    } catch(error) {
+
+        if (intent.includes('general_question') && req.session.bookingStep === undefined) {
+            req.session.state = 'general_question';
+            handleGeneralQuestion(referenceData, conversation, prompt, req.session.id, res);
+        } else {
+            req.session.state = 'booking_request';
+            const llmResponse = await handleBookingRequest(conversation, prompt, req)
+            conversation ? updateConversation(prompt, llmResponse, conversation, req.session.id) : createConversation(prompt, llmResponse, req.session.id);
+            res.status(200).json({ success: true, msg: llmResponse });
+        }
+    } catch (error) {
         console.error(error);
         res.status(error instanceof ChatError ? 400 : 500).json({
             success: false,
             errorMessage: error instanceof Error ? error.message : 'I’m temporarily unavailable due to a technical issue. Please try again shortly.'
         })
+    }
+})
+
+app.post('/resolve', async (req, res) => { // Destroys session and deletes conversation
+    try {
+        await Conversation.findOneAndDelete({ sessionId: req.session.id });
+        req.session.destroy((err) => {
+            if(err) throw err;
+        });
+        res.status(200).json({ status: true });
+    } catch(error) {
+        console.error(error);
+        res.status(500).json({ success: false, errorMessage: 'Oops! Failed to resolve chat' });
     }
 })
 

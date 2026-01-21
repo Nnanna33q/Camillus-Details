@@ -1,22 +1,34 @@
 [
     {
         "category": "Business Overview",
-        "text": "Wash & Wax is a professional car detailing business operating in Sheffield, United Kingdom, providing high-quality interior and exterior vehicle detailing services along with optional add-ons to enhance vehicle appearance and cleanliness. The business is owned and operated by Lewis Malden, a Sheffield-based entrepreneur focused on delivering reliable and thorough detailing services."
+        "text": "Camillus Details is a professional car detailing business operating in Belfast, United Kingdom, providing high-quality car detailing services"
     },
     {
-        "category": "Service Hours",
-        "text": "Wash & Wax service hours are Monday through Friday from 9:00 AM to 6:00 PM, Saturday from 10:00 AM to 5:00 PM, and the business is closed on Sundays."
+        "category": "Working Hours",
+        "text": "Camillus Details's working hours are Monday to Saturday from 9:00 AM to 6:00 PM. the business is closed on Sundays."
     },
     {
-        "category": "Core Services",
-        "text": "Wash & Wax offers several core detailing services, including Interior Detailing priced at $100, which includes deep cleaning of seats, carpets, the dashboard, and interior surfaces; Exterior Detailing priced at $80, which includes a full exterior wash, cleaning, and finishing of the vehicle’s exterior surfaces; and a Full Detail service priced at $150, which combines both interior and exterior detailing for a complete vehicle clean."
+        "category": "Our Services",
+        "text": "Camillus Details offers 3 main services or packages. Interior Detail, Exterior Detail and Full Detail"
     },
     {
-        "category": "Add on Services",
-        "text": "Wash & Wax offers optional add-on services that customers can include with their detailing package, such as pet hair removal, waxing and ceramic coating, upholstery cleaning, and odor removal, with add-on pricing varying depending on the vehicle’s condition and specific requirements."
+        "category": "Interior Detail",
+        "text": "Interior detail is a thorough cleaning of your vehicle’s cabin, including seats, carpets, floor mats, dashboards, vents, and door panels. It removes dirt, stains, and odors, leaving the interior fresh, hygienic, and well-maintained. At Camillus Details, interior detail starts at £75, with pricing varying depending on the vehicle’s size and condition."
+    },
+    {
+        "category": "Exterior Detail",
+        "text": "Exterior detail focuses on cleaning, polishing, and protecting your car’s exterior surfaces, including paintwork, wheels, tires, windows, and trim. It removes dirt, grime, and road contaminants, leaving your vehicle looking shiny and well-maintained. At Camillus Details, exterior detail starts at £60, with final pricing depending on the vehicle’s size and condition."
+    },
+    {
+        "category": "Full Detail",
+        "text": "Full detail combines both interior and exterior services for a complete vehicle refresh. It thoroughly cleans, polishes, and protects every part of your car, leaving it spotless inside and out. At Camillus Details, full detail starts at £125, with pricing varying based on vehicle size and condition."
+    },
+    {
+        "category": "Add-ons",
+        "text": "Camillus Details offers optional add-ons that customers can may include with their detailing package, such as pet hair removal, waxing and ceramic coating, upholstery cleaning, and odor removal"
     },
     {
         "category": "Owner info",
-        "text": "Customers can contact Wash & Wax via email at camillus@camilluscodes.com and the business is owned by Lewis Malden, based in Sheffield, United Kingdom."
+        "text": "Customers can contact Camillus Details via email at camillus@camilluscodes.com and the business is owned by Camillus"
     }
 ]

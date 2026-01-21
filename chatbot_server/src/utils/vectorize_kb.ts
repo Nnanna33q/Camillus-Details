@@ -17,7 +17,9 @@ export default async function insertKbVectors() {
                     }).save()
                 })
             )
+            console.log('Kbs fully inserted');
         }
+        console.log('No kb inserted');
     } catch(error) {
         // Failed to vectorize and store knowledge base
         console.log(error instanceof Error ? error.message : error);
