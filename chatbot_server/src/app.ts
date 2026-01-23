@@ -34,7 +34,7 @@ const whitelistedOrigins = process.env.NODE_ENVIRONMENT === 'production' ? ['htt
 const PORT = process.env.PORT ? process.env.PORT : 4000;
 const app = express();
 
-app.enable('trust-proxy');
+app.set('trust-proxy', 1);
 
 app.use(cors({
     origin: (origin, callback) => {
