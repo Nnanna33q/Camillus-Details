@@ -57,7 +57,9 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     cookie: {
         httpOnly: true,
-        maxAge: 60000 * 60 * 24
+        maxAge: 60000 * 60 * 24,
+        secure: process.env.NODE_ENVIRONMENT === 'production',
+        sameSite: process.env.NODE_ENVIRONMENT === 'production' ? 'none' : 'lax'
     },
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_CONNECTIONSTRING })
 }))
