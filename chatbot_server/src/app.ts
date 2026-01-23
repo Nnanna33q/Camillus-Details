@@ -56,7 +56,7 @@ app.use(session({
     saveUninitialized: false,
     secret: process.env.SESSION_SECRET,
     cookie: {
-        httpOnly: true,
+        httpOnly: false,
         maxAge: 60000 * 60 * 24,
         secure: process.env.NODE_ENVIRONMENT === 'production',
         sameSite: process.env.NODE_ENVIRONMENT === 'production' ? 'none' : 'lax'
