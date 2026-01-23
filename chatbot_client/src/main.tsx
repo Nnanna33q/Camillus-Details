@@ -63,7 +63,7 @@ function ConversationPromptInput() {
     setChatMessages([...chatMessages, newUserMessage, newAssistantMessage])
 
     try {
-      const response = await fetch(window.location.origin === 'http://localhost:5173' ? 'http://localhost:4000/' : 'https://chatbot_backend.vercel.app', {
+      const response = await fetch(window.location.origin === 'http://localhost:5173' ? 'http://localhost:4000/' : 'https://camillus-details-chat.onrender.com/', {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: newUserMessage.content }),
