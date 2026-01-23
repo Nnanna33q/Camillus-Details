@@ -15,3 +15,10 @@ export type TBookingInfo = {
     time: string,
     vehicle: string
 }
+
+export type TMessage = {
+    id: number,
+    role: string,
+    content: string,
+    loadingState: boolean;
+}

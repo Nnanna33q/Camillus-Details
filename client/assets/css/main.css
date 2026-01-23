@@ -28,6 +28,25 @@
     --sectionPadding: clamp(3.75rem, 7.82vw, 6.25rem) 1rem;
 }
 
+.chat-bot {
+    position: fixed;
+    padding: 0.5rem;
+    border-radius: 50%;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1000;
+    background-color: var(--primary)
+}
+
+.chat-bot .chat-bubble {
+    width: 10px;
+    height: 10px;
+    background-color: var(--primary);
+    border-radius: 50%;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+}
 
 .preloader {
     position: fixed;

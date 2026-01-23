@@ -13,12 +13,12 @@ export async function summarizeMessages(messages: { user: String, llm: string }[
         messages: [
             {
                 role: 'user',
-                content: `Generate an updated summary of the conversation using these messages: ${messages} and the previous summary: ${prevSummary}. Return only the updated summary.`
+                content: `Generate a brief and updated summary of the conversation using these messages: ${messages} and the previous summary: ${prevSummary}. Return only the updated summary.`
             }
         ]
     }, {
         headers: {
-            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY2}`,
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
             "Content-Type": "application/json"
         }
     })
@@ -36,7 +36,7 @@ export async function getIntent(prompt: string) {
         ]
     }, {
         headers: {
-            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY2}`,
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
             "Content-Type": "application/json"
         }
     })
@@ -61,18 +61,16 @@ export async function handleGeneralQuestion(referenceData: string, conversation:
         ]
     }, {
         headers: {
-            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY2}`,
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
             "Content-Type": "application/json"
         }
     })
-    console.log(`Total Tokens for handling general_question: ${aiResponse.data.usage.total_tokens}`)
     conversation ? updateConversation(prompt, aiResponse.data.choices[0].message.content, conversation, sessionId) : createConversation(prompt, aiResponse.data.choices[0].message.content, sessionId);
     res.status(200).json({ success: true, msg: aiResponse.data.choices[0].message.content });
 }
 
 export async function handleBookingRequest(conversation: TConversation | null, prompt: string, req: Request) {
     if (req.session.bookingStep === undefined) {
-        console.log('In undefined block');
         const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
             model: 'nvidia/nemotron-nano-9b-v2:free',
             messages: [
@@ -90,19 +88,16 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             ]
         }, {
             headers: {
-                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY2}`,
+                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 "Content-Type": "application/json"
             }
         })
-
-        console.log(`Total Tokens for handling booking_request, undefined phase: ${aiResponse.data.usage.total_tokens}`)
 
         req.session.bookingStep = 'confirmation';
         return aiResponse.data.choices[0].message.content;
     }
 
     if (req.session.bookingStep === 'confirmation') {
-        console.log('In confirmation chain');
         const aiConfirmationResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
             model: 'nvidia/nemotron-nano-9b-v2:free',
             messages: [
@@ -120,12 +115,10 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             ]
         }, {
             headers: {
-                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY2}`,
+                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 "Content-Type": "application/json"
             }
         })
-
-        console.log(`Total Tokens for handling booking_request, confirmation phase: ${aiConfirmationResponse.data.usage.total_tokens}`)
 
         try {
             const { sentiment, llmResponse } = JSON.parse(aiConfirmationResponse.data.choices[0].message.content);
@@ -140,7 +133,6 @@ export async function handleBookingRequest(conversation: TConversation | null, p
     }
 
     if (req.session.bookingStep === 'data collection') {
-        console.log('In data collection phase');
         const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
             model: 'nvidia/nemotron-nano-9b-v2:free',
             messages: [
@@ -149,9 +141,9 @@ export async function handleBookingRequest(conversation: TConversation | null, p
                     content: `You are a customer support assistant for Camillus Details, a car detailing business and you're currently handling a booking request and not confirming bookings.
                               Respond politely, professionally, and concisely. Do not mention internal systems, APIs, or AI.
 
-                              From the user’s message, extract any useful business information (e.g. name, email, service type, preferred time).
+                              From the user’s message, extract useful info (name, email, service type, preferred time).
                               ALWAYS return a valid JSON object with exactly two fields:
-                              - "data": the extracted information as a string (null if none)
+                              - "data": the extracted information as a string (null if any or all requested info is not provided)
                               - "llmResponse": the message to send back to the user (The business will review their booking request and get back them)`
                 },
                 {
@@ -163,22 +155,20 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             ]
         }, {
             headers: {
-                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY2}`,
+                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 "Content-Type": "application/json"
             }
         })
 
-        console.log(`Total Tokens for handling booking_request, data collection phase: ${aiResponse.data.usage.total_tokens}`)
-
         try {
             const { data, llmResponse } = JSON.parse(aiResponse.data.choices[0].message.content);
             if(data) {
-                await sendMail(data);
+                await sendMail(data, prompt);
                 req.session.bookingStep = undefined;
                 return llmResponse
             }
             req.session.bookingStep = 'data collection';
-            return 'To help us assist you, please share your name, email, service you’re interested in, and preferred date or time'
+            return 'To help us assist you, please provide all info (your name, email, service you’re interested in, and preferred date or time)'
         } catch(error) {
             req.session.bookingStep = 'data collection';
             return 'Oops — something went wrong on our end. Please send your message again.'

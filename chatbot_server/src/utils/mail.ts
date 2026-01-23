@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
 const host = 'smtp.resend.com';
 const port = 465
 
-export default async function sendMail(data: string) {
+export default async function sendMail(data: string, prompt: string) {
     const transporter = nodemailer.createTransport({
         host,
         port,
@@ -19,6 +19,6 @@ export default async function sendMail(data: string) {
         from: `Camillus Details <${process.env.SENDER_EMAIL}>`,
         to: process.env.OWNER_EMAIL_ADDRESS,
         subject: 'New Contact Form Submission',
-        text: data
+        text: `${data}\n\n\nLead's message: "${prompt}"`
     })
 }
