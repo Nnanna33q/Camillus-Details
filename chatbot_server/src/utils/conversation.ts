@@ -11,7 +11,6 @@ export async function createConversation(userPrompt: string, llmResponse: string
         summary: '',
         bookingStep: bookingStep
     }).save()
-    console.log(_id);
     return _id;
 }
 

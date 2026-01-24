@@ -44,7 +44,7 @@ export async function getIntent(prompt: string) {
 }
 
 export async function handleGeneralQuestion(referenceData: string, conversation: TConversation | null, prompt: string, res: Response) {
-    
+
     const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
         model: 'nvidia/nemotron-nano-9b-v2:free',
         messages: [
@@ -103,15 +103,25 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             messages: [
                 {
                     role: 'system',
-                    content: `You are a customer support assistant for Camillus Details (a car detailing company). Answer questions politely, clearly, professionally and make sure your response is short. Avoid mentioning internal systems, APIs, or AI models.
-                    Analyze the user's message and determine if they are confirming to start a booking request. ALWAYS return a valid JSON object with two fields: "sentiment": "yes", "no" or "unclear" and "llmResponse": (The text the bot should respond to the prompt with. Only ask for user's name and preferred booking time, service and email if sentiment is "yes")`
+                    content: `You are a polite, professional customer support assistant for Camillus Details. 
+                    Always respond in JSON:
+
+                    {
+                        "sentiment": "yes|no|unclear",
+                        "llmResponse": "The text you should reply to the user."
+                    }
+
+                    Rules:
+                    - If sentiment = "yes": ask for user's name, preferred booking time, service, and email
+                    - If sentiment = "no": give a short, polite answer
+                    - If sentiment = "unclear": give a neutral, short answer
+                    - DO NOT include any text outside JSON
+
+                    User's prompt: ${prompt}\n
+                    ${conversation ? formatConversation(conversation) : ''} \n
+                    ${conversation ? getSummary(conversation) : ''}
+`
                 },
-                {
-                    role: 'user',
-                    content: `Answer the following user prompt using the provided summary and conversation if any.\nUser's Prompt: "${prompt}".\n 
-                        ${conversation ? formatConversation(conversation) : ''} \n
-                        ${conversation ? getSummary(conversation) : ''}`
-                }
             ]
         }, {
             headers: {
@@ -123,8 +133,9 @@ export async function handleBookingRequest(conversation: TConversation | null, p
         try {
             const { sentiment, llmResponse } = JSON.parse(aiConfirmationResponse.data.choices[0].message.content);
             return { llmResponse, bookingStep: sentiment === 'yes' ? 'data collection' : 'unset' };
-        } catch(error) {
+        } catch (error) {
             console.error(error);
+            console.log(aiConfirmationResponse.data.choices[0].message.content)
             // LLM probably didn't return valid json
             return { llmResponse: 'Oops — something went wrong on our end. Please send your message again.', bookingStep: 'confirmation' }
         }
@@ -136,13 +147,35 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             messages: [
                 {
                     role: 'system',
-                    content: `You are a customer support assistant for Camillus Details, a car detailing business and you're currently handling a booking request and not confirming bookings.
-                              Respond politely, professionally, and concisely. Do not mention internal systems, APIs, or AI.
+                    content: `You are a polite, professional customer support assistant for Camillus Details (a car detailing business). 
+                    You are currently handling a booking request. Do not confirm bookings. 
+                    Do NOT mention internal systems, APIs, or AI.
 
-                              From the user’s message, extract useful info (name, email, service type, preferred time).
-                              ALWAYS return a valid JSON object with exactly two fields:
-                              - "data": the extracted information as a string (null if any or all requested info is not provided)
-                              - "llmResponse": the message to send back to the user (The business will review their booking request and get back them)`
+                    From the user's message, extract the following information if provided:
+                    - Name
+                    - Email
+                    - Service type
+                    - Preferred time
+
+                    ALWAYS RETURN ONLY VALID JSON with exactly two fields:
+
+                    {
+                        "data": "Extracted info as a string, or null if any/all info missing",
+                        "llmResponse": "The message to send back to the user: politely state that the booking will be reviewed."
+                    }
+
+                    Examples:
+
+                    message: "Hi, my name is John, I want a full detail tomorrow, email john@example.com"
+                    Output: {"data": "John, john@example.com, full detail, tomorrow", "llmResponse": "Thanks John! We have received your booking request and will review it shortly."}
+
+                    message: "I’d like a wash for my SUV"
+                    Output: {"data": null, "llmResponse": "Thanks! We have received your booking request and will review it shortly."}
+
+                    Now analyze this message: ${prompt}\n
+                    ${conversation ? formatConversation(conversation) : ''} \n
+                    ${conversation ? getSummary(conversation) : ''}
+`
                 },
                 {
                     role: 'user',
@@ -160,13 +193,14 @@ export async function handleBookingRequest(conversation: TConversation | null, p
 
         try {
             const { data, llmResponse } = JSON.parse(aiResponse.data.choices[0].message.content);
-            if(data) {
+            if (data) {
                 await sendMail(data, prompt);
                 return { llmResponse, bookingStep: 'unset' }
             }
             return { llmResponse: 'To help us assist you, please provide all info (your name, email, service you’re interested in, and preferred date or time)', bookingStep: 'data collection' }
-        } catch(error) {
+        } catch (error) {
             console.error(error);
+            console.log(aiResponse.data.choices[0].message.content);
             return { llmResponse: 'Oops — something went wrong on our end. Please send your message again.', bookingStep: 'data collection' }
         }
     }
