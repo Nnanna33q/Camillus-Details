@@ -5,7 +5,7 @@ import { createConversation, updateConversation } from './conversation.js';
 import { getSummary, formatConversation } from './format_conversation.js';
 import sendMail from './mail.js';
 import type { TConversation } from './types.js';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 
 export async function summarizeMessages(messages: { user: String, llm: string }[], prevSummary?: string): Promise<string> {
     const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
@@ -43,7 +43,7 @@ export async function getIntent(prompt: string) {
     return response.data.choices[0].message.content
 }
 
-export async function handleGeneralQuestion(referenceData: string, conversation: TConversation | null, prompt: string, sessionId: string, res: Response) {
+export async function handleGeneralQuestion(referenceData: string, conversation: TConversation | null, prompt: string, res: Response) {
     
     const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
         model: 'nvidia/nemotron-nano-9b-v2:free',
@@ -65,12 +65,13 @@ export async function handleGeneralQuestion(referenceData: string, conversation:
             "Content-Type": "application/json"
         }
     })
-    conversation ? updateConversation(prompt, aiResponse.data.choices[0].message.content, conversation, sessionId) : createConversation(prompt, aiResponse.data.choices[0].message.content, sessionId);
-    res.status(200).json({ success: true, msg: aiResponse.data.choices[0].message.content });
+    conversation && await updateConversation(prompt, aiResponse.data.choices[0].message.content, conversation, conversation._id, 'unset');
+    const id = !conversation && await createConversation(prompt, aiResponse.data.choices[0].message.content, 'unset');
+    res.status(200).json({ success: true, msg: aiResponse.data.choices[0].message.content, id });
 }
 
-export async function handleBookingRequest(conversation: TConversation | null, prompt: string, req: Request) {
-    if (req.session.bookingStep === undefined) {
+export async function handleBookingRequest(conversation: TConversation | null, prompt: string) {
+    if (!conversation || conversation.bookingStep === 'unset') {
         const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
             model: 'nvidia/nemotron-nano-9b-v2:free',
             messages: [
@@ -93,11 +94,10 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             }
         })
 
-        req.session.bookingStep = 'confirmation';
-        return aiResponse.data.choices[0].message.content;
+        return { llmResponse: aiResponse.data.choices[0].message.content, bookingStep: 'confirmation' }
     }
 
-    if (req.session.bookingStep === 'confirmation') {
+    if (conversation.bookingStep === 'confirmation') {
         const aiConfirmationResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
             model: 'nvidia/nemotron-nano-9b-v2:free',
             messages: [
@@ -122,17 +122,14 @@ export async function handleBookingRequest(conversation: TConversation | null, p
 
         try {
             const { sentiment, llmResponse } = JSON.parse(aiConfirmationResponse.data.choices[0].message.content);
-            if (sentiment === 'yes') req.session.bookingStep = 'data collection';
-            if (sentiment !== 'yes') req.session.bookingStep = undefined;
-            return llmResponse;
+            return { llmResponse, bookingStep: sentiment === 'yes' ? 'data collection' : 'unset' };
         } catch(error) {
             // LLM probably didn't return valid json
-            req.session.bookingStep = 'confirmation';
-            return 'Oops — something went wrong on our end. Please send your message again.'
+            return { llmResponse: 'Oops — something went wrong on our end. Please send your message again.', bookingStep: 'confirmation' }
         }
     }
 
-    if (req.session.bookingStep === 'data collection') {
+    if (conversation.bookingStep === 'data collection') {
         const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
             model: 'nvidia/nemotron-nano-9b-v2:free',
             messages: [
@@ -164,14 +161,12 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             const { data, llmResponse } = JSON.parse(aiResponse.data.choices[0].message.content);
             if(data) {
                 await sendMail(data, prompt);
-                req.session.bookingStep = undefined;
-                return llmResponse
+                return { llmResponse, bookingStep: 'unset' }
             }
-            req.session.bookingStep = 'data collection';
-            return 'To help us assist you, please provide all info (your name, email, service you’re interested in, and preferred date or time)'
+            return { llmResponse: 'To help us assist you, please provide all info (your name, email, service you’re interested in, and preferred date or time)', bookingStep: 'data collection' }
         } catch(error) {
-            req.session.bookingStep = 'data collection';
-            return 'Oops — something went wrong on our end. Please send your message again.'
+            return { llmResponse: 'Oops — something went wrong on our end. Please send your message again.', bookingStep: 'data collection' }
         }
     }
+    return { llmResponse: 'An unexpected error occurred. Please contact the developer if issue persists', bookingStep: 'unset' }
 }

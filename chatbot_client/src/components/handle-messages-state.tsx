@@ -36,7 +36,7 @@ export default function HandleMessagesState({ chatMessages, setChatMessages, isL
             <div className="text-xl text-accent">
                 {messagesError.errorMessage}
             </div>
-            <Button onClick={() => getMessages(setChatMessages, setIsLoadingMessages, setMessagesError)} className="ring rounded-none bg-white text-primary gap-1">
+            <Button onClick={() => getMessages(setChatMessages, setIsLoadingMessages, setMessagesError)} className="ring rounded-none bg-white text-primary gap-1 hover:bg-secondary">
                 <span className="font-semibold">Retry</span> <RotateCw />
             </Button>
         </ChatContainerContent>

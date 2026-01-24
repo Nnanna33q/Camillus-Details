@@ -10,7 +10,8 @@ type TMessage = {
 
 export async function getMessages(setChatMessages: Dispatch<SetStateAction<TMessage[] | null>>, setIsLoadingMessages: Dispatch<SetStateAction<boolean>>, setMessagesError: Dispatch<SetStateAction<{ error: boolean, errorMessage: string }>>) {
     try {
-        const response = await fetch(window.location.origin === 'http://localhost:5173' ? 'http://localhost:4000/messages' : 'https://camillus-details-chat.onrender.com/messages', { credentials: 'include' });
+        const id = localStorage.getItem('id');
+        const response = await fetch(window.location.origin === 'http://localhost:5173' ? 'http://localhost:4000/messages' : 'https://camillus-details-chat.onrender.com/messages', { headers: id ? { "id": id } : undefined });
         const data = await response.json();
         if (!data.success) throw new ChatError(data.errorMessage);
         setChatMessages(data.messages);

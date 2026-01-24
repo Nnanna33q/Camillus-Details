@@ -5,30 +5,20 @@ import connectToDB from './utils/db_connect.js';
 import { handleGeneralQuestion, handleBookingRequest } from './utils/llm_interactions.js';
 import insertKbVectors from './utils/vectorize_kb.js';
 import { getIntent } from './utils/llm_interactions.js';
-import session from 'express-session';
 import getVector from './utils/vectorize.js';
 import similarity from 'compute-cosine-similarity';
 import Kb from './schemas/knowledgebase.js';
 import Conversation from './schemas/conversation.js';
 import { createConversation, updateConversation } from './utils/conversation.js';
-import type { TState, TBookingInfo, TBookingStep, TMessage } from './utils/types.js';
-import MongoStore from 'connect-mongo';
+import type { TMessage } from './utils/types.js';
 import cors from 'cors';
 import { chatLimiter, messagesLimiter, basicLimiter } from './utils/limiter.js';
 
-declare module 'express-session' {
-    interface SessionData {
-        state: TState,
-        bookingStep: TBookingStep
-        bookingInfo: TBookingInfo
-    }
-}
 
-
-if (!process.env.SESSION_SECRET || !process.env.MONGODB_CONNECTIONSTRING) {
-    console.error('No environment variables detected');
+if (!process.env.MONGODB_CONNECTIONSTRING) {
+    console.error('No mongodb connection uri detected');
     process.exit(1);
-} 
+}
 
 const whitelistedOrigins = process.env.NODE_ENVIRONMENT === 'production' ? ['https://chat.camillusdetails.online', 'https://camillusdetails-chat.vercel.app'] : ['http://localhost:5173'];
 const PORT = process.env.PORT ? process.env.PORT : 4000;
@@ -38,30 +28,16 @@ app.set('trust-proxy', 1);
 
 app.use(cors({
     origin: (origin, callback) => {
-        if(!origin) {
+        if (!origin) {
             return callback(null, true);
         }
 
-        if(whitelistedOrigins.indexOf(origin) === -1) {
+        if (whitelistedOrigins.indexOf(origin) === -1) {
             callback(new Error('This origin is not allowed to make this request'));
         } else {
             callback(null, true);
         }
-    },
-    credentials: true
-}))
-
-app.use(session({
-    resave: false,
-    saveUninitialized: false,
-    secret: process.env.SESSION_SECRET,
-    cookie: {
-        httpOnly: false,
-        maxAge: 60000 * 60 * 24,
-        secure: process.env.NODE_ENVIRONMENT === 'production',
-        sameSite: process.env.NODE_ENVIRONMENT === 'production' ? 'none' : 'lax'
-    },
-    store: MongoStore.create({ mongoUrl: process.env.MONGODB_CONNECTIONSTRING })
+    }
 }))
 
 connectToDB().then(() => insertKbVectors());
@@ -72,10 +48,11 @@ class ChatError extends Error { };
 app.post('/', chatLimiter, async (req, res) => {
     try {
         const { prompt } = req.body;
+        const id = req.headers['id'];
         if (!prompt) throw new ChatError('Please add a prompt');
-        if(prompt.length > 500) throw new ChatError('Message too long (over 500 characters). Please shorten it and try again');
+        if (prompt.length > 500) throw new ChatError('Message too long (over 500 characters). Please shorten it and try again');
 
-        const [kbs, conversation, intent, vectorPrompt] = await Promise.all([Kb.find(), Conversation.findOne({ sessionId: req.session.id }), getIntent(prompt), getVector(prompt)]);
+        const [kbs, conversation, intent, vectorPrompt] = await Promise.all([Kb.find(), Conversation.findById(id), getIntent(prompt), getVector(prompt)]);
 
         const scoredKnowledgeChunks = await Promise.all(kbs.map(k => {
             return { score: similarity(vectorPrompt, k.vector), text: k.text }
@@ -89,33 +66,30 @@ app.post('/', chatLimiter, async (req, res) => {
         let referenceData = '';
         sortedKC.slice(0, 3).forEach(s => referenceData += s.text);
 
-        if (intent.includes('general_question') && req.session.bookingStep === undefined) {
-            req.session.state = 'general_question';
-            handleGeneralQuestion(referenceData, conversation, prompt, req.session.id, res);
+        if (intent.includes('general_question') && (!conversation || conversation.bookingStep === 'unset')) {
+            handleGeneralQuestion(referenceData, conversation, prompt, res);
         } else {
-            req.session.state = 'booking_request';
-            const llmResponse = await handleBookingRequest(conversation, prompt, req)
-            conversation ? updateConversation(prompt, llmResponse, conversation, req.session.id) : createConversation(prompt, llmResponse, req.session.id);
-            res.status(200).json({ success: true, msg: llmResponse });
+            const { llmResponse, bookingStep } = await handleBookingRequest(conversation, prompt)
+            conversation && updateConversation(prompt, llmResponse, conversation, conversation._id, bookingStep);
+            const id = !conversation && createConversation(prompt, llmResponse, bookingStep);
+            res.status(200).json({ success: true, msg: llmResponse, id });
         }
     } catch (error) {
         console.error(error);
-        if(error instanceof ChatError) {
-            res.status(400).json({ success: false, errorMessage: error.message });
+        if (error instanceof ChatError) {
+            res.status(400).json({ success: false, errorMessage: error.message, id: null });
         } else {
-            res.status(500).json({ success: false, errorMessage: 'Oops - Something went wrong. Please try again later' })
+            res.status(500).json({ success: false, errorMessage: 'Oops - Something went wrong. Please try again later', id: null })
         }
     }
 })
 
 app.post('/resolve', basicLimiter, async (req, res) => { // Destroys session and deletes conversation
     try {
-        await Conversation.findOneAndDelete({ sessionId: req.session.id });
-        req.session.destroy((err) => {
-            if(err) throw err;
-        });
+        const id = req.headers['id'];
+        id && await Conversation.findByIdAndDelete(id);
         res.status(200).json({ status: true });
-    } catch(error) {
+    } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, errorMessage: 'Oops! Failed to resolve chat' });
     }
@@ -125,11 +99,18 @@ app.get('/ping', basicLimiter, (req, res) => res.json({ success: true }))
 
 app.get('/messages', messagesLimiter, async (req, res) => {
     try {
-        const conversation = await Conversation.findOne({ sessionId: req.session.id });
-        if(!conversation) {
+        const id = req.headers['id'];
+        if (typeof id !== 'string') {
             res.status(200).json({ success: true, messages: [] });
             return;
         }
+        const conversation = await Conversation.findById(id);
+
+        if (!conversation) {
+            res.status(200).json({ success: true, messages: [] });
+            return;
+        }
+
         const messages: TMessage[] = [];
 
         conversation.messages.forEach((m, i) => {
@@ -142,7 +123,7 @@ app.get('/messages', messagesLimiter, async (req, res) => {
             }))
         })
         res.status(200).json({ success: true, messages });
-    } catch(error) {
+    } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, errorMessage: error instanceof Error ? error.message : 'An unexpected error occurred' });
     }

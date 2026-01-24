@@ -63,15 +63,16 @@ function ConversationPromptInput() {
     setChatMessages([...chatMessages, newUserMessage, newAssistantMessage])
 
     try {
+      const id = localStorage.getItem('id');
       const response = await fetch(window.location.origin === 'http://localhost:5173' ? 'http://localhost:4000/' : 'https://camillus-details-chat.onrender.com/', {
         method: 'POST',
-        headers: { "Content-Type": "application/json" },
+        headers: id ? { "Content-Type": "application/json", "id": id } : { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: newUserMessage.content }),
-        credentials: 'include'
       });
 
       const data = await response.json();
       if (!data.success) throw new ChatError(data.errorMessage);
+      data.id && localStorage.setItem('id', data.id);
       setIsLoading(false);
       setChatMessages((prev) => {
         const filteredMessages = prev ? prev.filter((m) => m.loadingState === false) : [];
