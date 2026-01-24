@@ -18,7 +18,7 @@ export default async function sendMail(data: string, prompt: string) {
     await transporter.sendMail({
         from: `Camillus Details <${process.env.SENDER_EMAIL}>`,
         to: process.env.OWNER_EMAIL_ADDRESS,
-        subject: 'New Contact Form Submission',
+        subject: 'New Booking Request',
         text: `${data}\n\n\nLead's message: "${prompt}"`
     })
 }
