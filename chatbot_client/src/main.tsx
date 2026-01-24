@@ -102,7 +102,7 @@ function ConversationPromptInput() {
             <ScrollButton variant={'secondary'} />
           </div>
         </ChatContainerRoot>
-        <div className="inset-x-0 bottom-0 mx-auto w-full max-w-3xl shrink-0 px-3 pb-3 md:px-5 md:pb-5">
+        <div className="inset-x-0 bottom-0 fixed mx-auto w-full max-w-3xl shrink-0 px-3 pb-3 md:px-5 md:pb-5">
           <PromptInput
             isLoading={isLoading}
             value={prompt}

@@ -20,7 +20,7 @@ export async function getMessages(setChatMessages: Dispatch<SetStateAction<TMess
         console.error(error);
         setChatMessages(null);
         if(error instanceof ChatError) return setMessagesError({ error: true, errorMessage: error.message });
-        if(error instanceof Error) return setMessagesError({ error: true, errorMessage: 'Something went wrong. Please check your connection and try again.' });
+        if(error instanceof Error) return setMessagesError({ error: true, errorMessage: 'Something went wrong. Please try again later.' });
         return setMessagesError({ error: true, errorMessage: 'An unexpected error occurred' });
 
     }
