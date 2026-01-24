@@ -78,7 +78,7 @@ export async function handleBookingRequest(conversation: TConversation | null, p
                 {
                     role: 'system',
                     content: `You are a customer support assistant for Camillus Details (a car detailing company).
-                              Only Ask if they would like to proceed with a booking request and nothing else.`
+                              Only Ask if they would like to proceed with a booking request. Do not tell them to provide any details and do not add extra commentary`
                 },
                 {
                     role: 'user',
