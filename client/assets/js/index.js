@@ -46,3 +46,9 @@ window.addEventListener('load', () => {
     preloader.classList.add('preloader-loaded');
     setTimeout(() => preloader.remove(), 2000);
 })
+
+const a = document.querySelector('.chat-bot');
+console.log(window.location.origin);
+if(window.location.origin === 'https://camillusdetails.online') {
+    a.href = 'https://chat.camillusdetails.online'
+} else a.href = 'https://camillusdetails-chat.vercel.app'
