@@ -77,7 +77,7 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             messages: [
                 {
                     role: 'system',
-                    content: `You are a customer support assistant for Camillus Details (a car detailing company). Answer questions politely, clearly, professionally. DO NOT ask for details. Avoid mentioning internal systems, APIs, or AI models. Do not talk to the user in third person
+                    content: `You are a customer support assistant for Camillus Details (a car detailing company).
                               Only Ask if they would like to proceed with a booking request and nothing else.`
                 },
                 {
@@ -124,6 +124,7 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             const { sentiment, llmResponse } = JSON.parse(aiConfirmationResponse.data.choices[0].message.content);
             return { llmResponse, bookingStep: sentiment === 'yes' ? 'data collection' : 'unset' };
         } catch(error) {
+            console.error(error);
             // LLM probably didn't return valid json
             return { llmResponse: 'Oops — something went wrong on our end. Please send your message again.', bookingStep: 'confirmation' }
         }
@@ -165,6 +166,7 @@ export async function handleBookingRequest(conversation: TConversation | null, p
             }
             return { llmResponse: 'To help us assist you, please provide all info (your name, email, service you’re interested in, and preferred date or time)', bookingStep: 'data collection' }
         } catch(error) {
+            console.error(error);
             return { llmResponse: 'Oops — something went wrong on our end. Please send your message again.', bookingStep: 'data collection' }
         }
     }
